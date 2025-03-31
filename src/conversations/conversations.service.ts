@@ -121,11 +121,12 @@ export class ConversationsService {
             createdAt: conversation.createdAt.toISOString(),
           },
           participants: conversation.participants.map((p) => ({
-            sid: p.id,
+            id: p.id,
+            updatedAt: p.updatedAt,
             identity: p.identity,
             userId: p.userId,
-            conversationSid: p.conversationId,
-            createdAt: p.createdAt.toISOString(),
+            conversationId: p.conversationId,
+            createdAt: p.createdAt,
           })),
         },
       };
@@ -198,11 +199,12 @@ export class ConversationsService {
             createdAt: conversation.createdAt.toISOString(),
           },
           participants: conversation.participants.map((p) => ({
-            sid: p.id,
+            id: p.id,
+            updatedAt: p.updatedAt,
             identity: p.identity,
             userId: p.userId,
-            conversationSid: p.conversationId,
-            createdAt: p.createdAt.toISOString(),
+            conversationId: p.conversationId,
+            createdAt: p.createdAt,
           })),
         },
       };
@@ -237,11 +239,12 @@ export class ConversationsService {
         success: true,
         data: {
           participants: participants.map((p) => ({
-            sid: p.id,
+            id: p.id,
+            updatedAt: p.updatedAt,
             identity: p.identity,
             userId: p.userId,
-            conversationSid: p.conversationId,
-            createdAt: p.createdAt.toISOString(),
+            conversationId: p.conversationId,
+            createdAt: p.createdAt,
           })),
         },
       };
@@ -278,11 +281,12 @@ export class ConversationsService {
         success: true,
         data: {
           participants: addedParticipants.map((p) => ({
-            sid: p.id,
+            id: p.id,
+            updatedAt: p.updatedAt,
             identity: p.identity,
             userId: p.userId,
-            conversationSid: p.conversationId,
-            createdAt: p.createdAt.toISOString(),
+            conversationId: p.conversationId,
+            createdAt: p.createdAt,
           })),
         },
       };

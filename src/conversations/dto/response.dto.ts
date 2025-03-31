@@ -45,13 +45,6 @@ export class GetConversationsResponseDto extends ApiResponseDto<{
   conversations: ConversationDto[];
   meta: PaginationMetaDto;
 }> {
-  @ApiProperty({
-    description: 'Response data',
-    type: () => ({
-      conversations: [ConversationDto],
-      meta: PaginationMetaDto,
-    }),
-  })
   declare data: {
     conversations: ConversationDto[];
     meta: PaginationMetaDto;
@@ -62,13 +55,6 @@ export class GetConversationResponseDto extends ApiResponseDto<{
   conversation: ConversationDto;
   participants: ParticipantDto[];
 }> {
-  @ApiProperty({
-    description: 'Response data',
-    type: () => ({
-      conversation: ConversationDto,
-      participants: [ParticipantDto],
-    }),
-  })
   declare data: {
     conversation: ConversationDto;
     participants: ParticipantDto[];
@@ -78,12 +64,6 @@ export class GetConversationResponseDto extends ApiResponseDto<{
 export class GetParticipantsResponseDto extends ApiResponseDto<{
   participants: ParticipantDto[];
 }> {
-  @ApiProperty({
-    description: 'Response data',
-    type: () => ({
-      participants: [ParticipantDto],
-    }),
-  })
   declare data: {
     participants: ParticipantDto[];
   };
