@@ -157,7 +157,7 @@ export class ConversationsService {
       );
 
       // Then add the current user as a participant
-      const currentUserParticipant = await this.twilioService.addParticipant(
+      await this.twilioService.addParticipant(
         twilioConversation.id,
         currentUserId,
         currentUserId,
@@ -267,27 +267,34 @@ export class ConversationsService {
       const addedParticipants = await Promise.all(
         dto.participants.map(async (identity) => {
           // First add to Twilio
-          const twilioParticipant = await this.twilioService.addParticipant(
-            conversationSid,
-            identity,
-            identity, // Using identity as userId for now, should be replaced with actual user ID
-          );
+          const userIdentity = await this.prisma.user.findUnique({
+            where: { id: identity },
+          });
+          if (userIdentity) {
+            const twilioParticipant = await this.twilioService.addParticipant(
+              conversationSid,
+              userIdentity.twilioIdentity,
+              identity, // Using identity as userId for now, should be replaced with actual user ID
+            );
 
-          return twilioParticipant;
+            return twilioParticipant;
+          }
         }),
       );
 
       return {
         success: true,
         data: {
-          participants: addedParticipants.map((p) => ({
-            id: p.id,
-            updatedAt: p.updatedAt,
-            identity: p.identity,
-            userId: p.userId,
-            conversationId: p.conversationId,
-            createdAt: p.createdAt,
-          })),
+          participants: addedParticipants
+            .filter((p) => p !== null && p !== undefined)
+            .map((p) => ({
+              id: p.id,
+              updatedAt: p.updatedAt,
+              identity: p.identity,
+              userId: p.userId,
+              conversationId: p.conversationId,
+              createdAt: p.createdAt,
+            })),
         },
       };
     } catch (error: unknown) {
@@ -325,4 +332,4 @@ export class ConversationsService {
       };
     }
   }
-} 
+}

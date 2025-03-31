@@ -25,6 +25,6 @@ async function bootstrap() {
   const outputPath = join(__dirname, '../../../frontend/src/api/openapi.json');
   writeFileSync(outputPath, JSON.stringify(document, null, 2));
 
-  await app.listen(process.env.PORT ?? 3000);
+  await app.listen(process.env.PORT ?? 8001);
 }
 bootstrap();

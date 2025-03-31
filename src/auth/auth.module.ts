@@ -6,6 +6,7 @@ import { AuthGuard } from './auth.guard';
 import { UsersModule } from '../users/users.module';
 import { PrismaModule } from '../prisma/prisma.module';
 import { TwilioModule } from '../twilio/twilio.module';
+import { AuthController } from './auth.controller';
 
 @Module({
   imports: [
@@ -21,6 +22,7 @@ import { TwilioModule } from '../twilio/twilio.module';
       inject: [ConfigService],
     }),
   ],
+  controllers: [AuthController],
   providers: [AuthService, AuthGuard],
   exports: [AuthService, AuthGuard, JwtModule],
 })
