@@ -8,8 +8,6 @@ async function main() {
   // Clean up existing data
   await prisma.participant.deleteMany();
   await prisma.conversation.deleteMany();
-  await prisma.refreshToken.deleteMany();
-  await prisma.accessToken.deleteMany();
   await prisma.user.deleteMany();
 
   // Create test users

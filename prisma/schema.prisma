@@ -24,37 +24,10 @@ model User {
   createdAt     DateTime      @default(now())
   updatedAt     DateTime      @updatedAt
   participants  Participant[]
-  accessTokens  AccessToken[]
-  refreshTokens RefreshToken[]
 
   @@map("users")
 }
 
-model AccessToken {
-  id        String   @id @default(uuid())
-  token     String   @unique
-  userId    String
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  expiresAt DateTime
-  createdAt DateTime @default(now())
-
-  @@map("access_tokens")
-  @@index([userId])
-}
-
-model RefreshToken {
-  id        String   @id @default(uuid())
-  token     String   @unique
-  userId    String
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  expiresAt DateTime
-  createdAt DateTime @default(now())
-  // Track if this refresh token has been used/revoked
-  isRevoked Boolean  @default(false)
-
-  @@map("refresh_tokens")
-  @@index([userId])
-}
 
 model Conversation {
   id           String        @id // This will be the Twilio conversation SID
