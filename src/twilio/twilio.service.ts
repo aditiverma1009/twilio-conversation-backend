@@ -40,9 +40,10 @@ export class TwilioService {
 
   async createConversation(friendlyName?: string): Promise<Conversation> {
     // First create conversation in Twilio
-    const twilioConversation = await this.twilio.conversations.v1.conversations.create({
-      friendlyName,
-    });
+    const twilioConversation =
+      await this.twilio.conversations.v1.conversations.create({
+        friendlyName,
+      });
 
     // Then create in database
     const conversation = await this.prisma.conversation.create({
@@ -55,7 +56,11 @@ export class TwilioService {
     return conversation;
   }
 
-  async addParticipant(conversationSid: string, identity: string, userId: string): Promise<Participant> {
+  async addParticipant(
+    conversationSid: string,
+    identity: string,
+    userId: string,
+  ): Promise<Participant> {
     // First add participant in Twilio
     const twilioParticipant = await this.twilio.conversations.v1
       .conversations(conversationSid)
@@ -74,7 +79,10 @@ export class TwilioService {
     return participant;
   }
 
-  async removeParticipant(conversationSid: string, participantSid: string): Promise<void> {
+  async removeParticipant(
+    conversationSid: string,
+    participantSid: string,
+  ): Promise<void> {
     // First remove from Twilio
     await this.twilio.conversations.v1
       .conversations(conversationSid)
@@ -84,7 +92,9 @@ export class TwilioService {
     // Then remove from database (will be handled by cascade delete)
   }
 
-  async getConversation(conversationSid: string): Promise<Conversation & { participants: Participant[] }> {
+  async getConversation(
+    conversationSid: string,
+  ): Promise<Conversation & { participants: Participant[] }> {
     // Get from database with participants
     const conversation = await this.prisma.conversation.findUnique({
       where: { id: conversationSid },

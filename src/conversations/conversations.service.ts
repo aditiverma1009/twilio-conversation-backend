@@ -48,38 +48,29 @@ export class ConversationsService {
     private readonly prisma: PrismaService,
   ) {}
 
-  async getConversations(params: {
-    page: number;
-    pageSize: number;
-    status?: 'active' | 'inactive';
-  }): Promise<GetConversationsResponseDto> {
-    try {
-      // Implement Twilio conversations fetch logic here
-      return {
-        success: true,
-        data: {
-          conversations: [],
-          meta: {
-            total: 0,
-            page: params.page,
-            pageSize: params.pageSize,
+  async getConversations(
+    identity: string,
+  ): Promise<GetConversationsResponseDto> {
+    const conversations = await this.prisma.conversation.findMany({
+      where: {
+        participants: {
+          some: {
+            identity,
           },
         },
-      };
-    } catch (error: unknown) {
-      return {
-        success: false,
-        data: {
-          conversations: [],
-          meta: {
-            total: 0,
-            page: params.page,
-            pageSize: params.pageSize,
-          },
-        },
-        error: getErrorMessage(error),
-      };
-    }
+      },
+    });
+
+    return {
+      success: true,
+      data: {
+        conversations: conversations.map((conversation) => ({
+          sid: conversation.id,
+          friendlyName: conversation.friendlyName,
+          createdAt: conversation.createdAt.toISOString()
+        })),
+      },
+    };
   }
 
   async getConversation(
@@ -259,6 +250,17 @@ export class ConversationsService {
     }
   }
 
+  async getConversationToken(userId: string) {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+    });
+
+    if (user) {
+      const twilioToken = this.twilioService.generateToken(user.twilioIdentity);
+
+      return twilioToken;
+    }
+  }
   async addParticipants(
     conversationSid: string,
     dto: AddParticipantsDto,

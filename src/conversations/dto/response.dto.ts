@@ -43,11 +43,9 @@ export class ApiResponseDto<T> {
 
 export class GetConversationsResponseDto extends ApiResponseDto<{
   conversations: ConversationDto[];
-  meta: PaginationMetaDto;
 }> {
   declare data: {
     conversations: ConversationDto[];
-    meta: PaginationMetaDto;
   };
 }
 

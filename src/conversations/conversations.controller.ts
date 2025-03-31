@@ -40,19 +40,16 @@ export class ConversationsController {
   @ApiOperation({ summary: 'Get all conversations' })
   @ApiResponse({
     status: 200,
-    description: 'List of conversations with pagination',
+    description: 'List of conversations of logged in user',
     type: GetConversationsResponseDto,
   })
   async getConversations(
-    @Query('page') page = 1,
-    @Query('pageSize') pageSize = 20,
-    @Query('status') status?: 'active' | 'inactive',
+    @Req() req: Request,
   ): Promise<GetConversationsResponseDto> {
-    const response = await this.conversationsService.getConversations({
-      page,
-      pageSize,
-      status,
-    });
+    const currentUserId = req.user?.id as string;
+
+    const response =
+      await this.conversationsService.getConversations(currentUserId);
     return response;
   }
 
@@ -66,7 +63,8 @@ export class ConversationsController {
   async getConversation(
     @Param('conversationSid') conversationSid: string,
   ): Promise<GetConversationResponseDto> {
-    const response = await this.conversationsService.getConversation(conversationSid);
+    const response =
+      await this.conversationsService.getConversation(conversationSid);
     return response;
   }
 
@@ -99,7 +97,8 @@ export class ConversationsController {
   async getParticipants(
     @Param('conversationSid') conversationSid: string,
   ): Promise<GetParticipantsResponseDto> {
-    const response = await this.conversationsService.getParticipants(conversationSid);
+    const response =
+      await this.conversationsService.getParticipants(conversationSid);
     return response;
   }
 
@@ -119,6 +118,13 @@ export class ConversationsController {
       addParticipantsDto,
     );
     return response;
+  }
+
+  @Post('token')
+  @ApiOperation({ summary: 'Create a new conversation token' })
+  async getChatToken(@Req() req: Request): Promise<string | undefined> {
+    const currentUserId = req.user?.id as string;
+    return this.conversationsService.getConversationToken(currentUserId);
   }
 
   @Delete(':conversationSid/participants/:participantSid')
