@@ -17,7 +17,7 @@ model User {
   id            String        @id @default(uuid())
   email         String        @unique
   password      String
-  name          String
+  name          String        @unique
   avatar        String?
   // Twilio identity for this user
   twilioIdentity String       @unique

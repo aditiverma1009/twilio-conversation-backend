@@ -23,48 +23,26 @@ export class PaginationMetaDto {
 }
 
 export class ApiResponseDto<T> {
-  @ApiProperty({
-    description: 'Whether the request was successful',
-    example: true,
-  })
+  @ApiProperty()
   success: boolean;
 
-  @ApiProperty({
-    description: 'The response data',
-  })
+  @ApiProperty()
   data: T;
 
-  @ApiProperty({
-    description: 'Error message if request failed',
-    required: false,
-  })
+  @ApiProperty({ required: false })
   error?: string;
 }
 
 export class GetConversationsResponseDto extends ApiResponseDto<{
   conversations: ConversationDto[];
   meta: PaginationMetaDto;
-}> {
-  declare data: {
-    conversations: ConversationDto[];
-    meta: PaginationMetaDto;
-  };
-}
+}> {}
 
 export class GetConversationResponseDto extends ApiResponseDto<{
   conversation: ConversationDto;
   participants: ParticipantDto[];
-}> {
-  declare data: {
-    conversation: ConversationDto;
-    participants: ParticipantDto[];
-  };
-}
+}> {}
 
 export class GetParticipantsResponseDto extends ApiResponseDto<{
   participants: ParticipantDto[];
-}> {
-  declare data: {
-    participants: ParticipantDto[];
-  };
-} 
+}> {} 

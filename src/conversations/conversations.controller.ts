@@ -5,7 +5,6 @@ import {
   Delete,
   Body,
   Param,
-  Query,
   UseGuards,
   Req,
 } from '@nestjs/common';
@@ -25,13 +24,15 @@ import {
   GetParticipantsResponseDto,
   ApiResponseDto,
 } from './dto/response.dto';
-import { AuthGuard } from '../auth/auth.guard';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { ConversationsService } from './conversations.service';
 import { Request } from 'express';
+import { GetUser } from '../auth/decorators/get-user.decorator';
+import { TwilioConversation, TwilioParticipant } from 'src/twilio/twilio.service';
 
 @ApiTags('Conversations')
 @ApiBearerAuth()
-@UseGuards(AuthGuard)
+@UseGuards(JwtAuthGuard)
 @Controller('conversations')
 export class ConversationsController {
   constructor(private readonly conversationsService: ConversationsService) {}
@@ -44,19 +45,16 @@ export class ConversationsController {
     type: GetConversationsResponseDto,
   })
   async getConversations(
-    @Query('page') page = 1,
-    @Query('pageSize') pageSize = 20,
-    @Query('status') status?: 'active' | 'inactive',
-  ): Promise<GetConversationsResponseDto> {
-    const response = await this.conversationsService.getConversations({
-      page,
-      pageSize,
-      status,
-    });
-    return response;
+    @GetUser('id') userId: string,
+  ): Promise<ApiResponseDto<{ conversations: TwilioConversation[] }>> {
+    const response = await this.conversationsService.getConversations(userId);
+    return {
+      success: true,
+      data: response,
+    };
   }
 
-  @Get(':conversationSid')
+  @Get(':sid')
   @ApiOperation({ summary: 'Get a conversation by SID' })
   @ApiResponse({
     status: 200,
@@ -64,10 +62,13 @@ export class ConversationsController {
     type: GetConversationResponseDto,
   })
   async getConversation(
-    @Param('conversationSid') conversationSid: string,
-  ): Promise<GetConversationResponseDto> {
-    const response = await this.conversationsService.getConversation(conversationSid);
-    return response;
+    @Param('sid') sid: string,
+  ): Promise<ApiResponseDto<{ conversation: TwilioConversation }>> {
+    const conversation = await this.conversationsService.getConversation(sid);
+    return {
+      success: true,
+      data: { conversation },
+    };
   }
 
   @Post()
@@ -89,7 +90,7 @@ export class ConversationsController {
     return response;
   }
 
-  @Get(':conversationSid/participants')
+  @Get(':sid/participants')
   @ApiOperation({ summary: 'Get participants of a conversation' })
   @ApiResponse({
     status: 200,
@@ -97,10 +98,13 @@ export class ConversationsController {
     type: GetParticipantsResponseDto,
   })
   async getParticipants(
-    @Param('conversationSid') conversationSid: string,
-  ): Promise<GetParticipantsResponseDto> {
-    const response = await this.conversationsService.getParticipants(conversationSid);
-    return response;
+    @Param('sid') sid: string,
+  ): Promise<ApiResponseDto<{ participants: TwilioParticipant[] }>> {
+    const participants = await this.conversationsService.getParticipants(sid);
+    return {
+      success: true,
+      data: { participants },
+    };
   }
 
   @Post(':conversationSid/participants')

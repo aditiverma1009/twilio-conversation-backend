@@ -9,7 +9,7 @@ import {
   GetParticipantsResponseDto,
   ApiResponseDto,
 } from './dto/response.dto';
-import { TwilioService } from '../twilio/twilio.service';
+import { TwilioService, TwilioConversation } from '../twilio/twilio.service';
 import { PrismaService } from '../prisma/prisma.service';
 
 interface ErrorWithMessage {
@@ -41,6 +41,10 @@ function getErrorMessage(error: unknown) {
   return toErrorWithMessage(error).message;
 }
 
+interface GetConversationsResponse {
+  conversations: TwilioConversation[];
+}
+
 @Injectable()
 export class ConversationsService {
   constructor(
@@ -48,102 +52,27 @@ export class ConversationsService {
     private readonly prisma: PrismaService,
   ) {}
 
-  async getConversations(params: {
-    page: number;
-    pageSize: number;
-    status?: 'active' | 'inactive';
-  }): Promise<GetConversationsResponseDto> {
-    try {
-      // Implement Twilio conversations fetch logic here
-      return {
-        success: true,
-        data: {
-          conversations: [],
-          meta: {
-            total: 0,
-            page: params.page,
-            pageSize: params.pageSize,
-          },
-        },
-      };
-    } catch (error: unknown) {
-      return {
-        success: false,
-        data: {
-          conversations: [],
-          meta: {
-            total: 0,
-            page: params.page,
-            pageSize: params.pageSize,
-          },
-        },
-        error: getErrorMessage(error),
-      };
+  async getConversations(userId: string): Promise<GetConversationsResponse> {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { twilioIdentity: true },
+    });
+
+    if (!user?.twilioIdentity) {
+      throw new Error('User Twilio identity not found');
     }
+
+    return this.twilioService.listConversations({
+      limit: 30,
+    });
   }
 
-  async getConversation(
-    conversationSid: string,
-  ): Promise<GetConversationResponseDto> {
-    try {
-      const conversation = await this.prisma.conversation.findUnique({
-        where: { id: conversationSid },
-        include: {
-          participants: {
-            include: {
-              user: true,
-            },
-          },
-        },
-      });
+  async getConversation(sid: string): Promise<TwilioConversation> {
+    return this.twilioService.fetchConversation(sid);
+  }
 
-      if (!conversation) {
-        return {
-          success: false,
-          data: {
-            conversation: {
-              sid: conversationSid,
-              friendlyName: null,
-              createdAt: new Date().toISOString(),
-            },
-            participants: [],
-          },
-          error: 'Conversation not found',
-        };
-      }
-
-      return {
-        success: true,
-        data: {
-          conversation: {
-            sid: conversation.id,
-            friendlyName: conversation.friendlyName,
-            createdAt: conversation.createdAt.toISOString(),
-          },
-          participants: conversation.participants.map((p) => ({
-            id: p.id,
-            updatedAt: p.updatedAt,
-            identity: p.identity,
-            userId: p.userId,
-            conversationId: p.conversationId,
-            createdAt: p.createdAt,
-          })),
-        },
-      };
-    } catch (error: unknown) {
-      return {
-        success: false,
-        data: {
-          conversation: {
-            sid: conversationSid,
-            friendlyName: null,
-            createdAt: new Date().toISOString(),
-          },
-          participants: [],
-        },
-        error: getErrorMessage(error),
-      };
-    }
+  async getParticipants(conversationSid: string) {
+    return this.twilioService.listConversationParticipants(conversationSid);
   }
 
   async createConversation(
@@ -151,60 +80,41 @@ export class ConversationsService {
     currentUserId: string,
   ): Promise<GetConversationResponseDto> {
     try {
-      // First create conversation in Twilio
       const twilioConversation = await this.twilioService.createConversation(
-        dto.friendlyName,
+        dto.friendlyName || 'New Conversation',
       );
 
-      // Then add the current user as a participant
       await this.twilioService.addParticipant(
-        twilioConversation.id,
+        twilioConversation.sid,
         currentUserId,
-        currentUserId,
+        { userId: currentUserId },
       );
 
-      // Get the conversation with all participants from database
-      const conversation = await this.prisma.conversation.findUnique({
-        where: { id: twilioConversation.id },
-        include: {
-          participants: {
-            include: {
-              user: true,
-            },
-          },
-        },
-      });
-
-      if (!conversation) {
-        return {
-          success: false,
-          data: {
-            conversation: {
-              sid: twilioConversation.id,
-              friendlyName: twilioConversation.friendlyName,
-              createdAt: twilioConversation.createdAt.toISOString(),
-            },
-            participants: [],
-          },
-          error: 'Failed to fetch created conversation',
-        };
-      }
+      const conversation = await this.twilioService.fetchConversation(
+        twilioConversation.sid,
+      );
+      const participants =
+        await this.twilioService.listConversationParticipants(
+          twilioConversation.sid,
+        );
 
       return {
         success: true,
         data: {
           conversation: {
-            sid: conversation.id,
+            sid: conversation.sid,
             friendlyName: conversation.friendlyName,
-            createdAt: conversation.createdAt.toISOString(),
+            createdAt: conversation.createdAt,
           },
-          participants: conversation.participants.map((p) => ({
-            id: p.id,
-            updatedAt: p.updatedAt,
+          participants: participants.map((p) => ({
+            id: p.sid,
+            conversationId: twilioConversation.sid,
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+            userId: p.attributes?.userId || 'mock-user-id',
             identity: p.identity,
-            userId: p.userId,
-            conversationId: p.conversationId,
-            createdAt: p.createdAt,
+            createdAt: new Date(),
+            updatedAt: new Date(),
+            attributes: p.attributes || {},
           })),
         },
       };
@@ -214,44 +124,9 @@ export class ConversationsService {
         data: {
           conversation: {
             sid: 'new-conversation',
-            friendlyName: dto.friendlyName || null,
+            friendlyName: dto.friendlyName || 'New Conversation',
             createdAt: new Date().toISOString(),
           },
-          participants: [],
-        },
-        error: getErrorMessage(error),
-      };
-    }
-  }
-
-  async getParticipants(
-    conversationSid: string,
-  ): Promise<GetParticipantsResponseDto> {
-    try {
-      const participants = await this.prisma.participant.findMany({
-        where: { conversationId: conversationSid },
-        include: {
-          user: true,
-        },
-      });
-
-      return {
-        success: true,
-        data: {
-          participants: participants.map((p) => ({
-            id: p.id,
-            updatedAt: p.updatedAt,
-            identity: p.identity,
-            userId: p.userId,
-            conversationId: p.conversationId,
-            createdAt: p.createdAt,
-          })),
-        },
-      };
-    } catch (error: unknown) {
-      return {
-        success: false,
-        data: {
           participants: [],
         },
         error: getErrorMessage(error),
@@ -266,35 +141,34 @@ export class ConversationsService {
     try {
       const addedParticipants = await Promise.all(
         dto.participants.map(async (identity) => {
-          // First add to Twilio
           const userIdentity = await this.prisma.user.findUnique({
             where: { id: identity },
           });
           if (userIdentity) {
-            const twilioParticipant = await this.twilioService.addParticipant(
+            return this.twilioService.addParticipant(
               conversationSid,
               userIdentity.twilioIdentity,
-              identity, // Using identity as userId for now, should be replaced with actual user ID
+              { userId: identity },
             );
-
-            return twilioParticipant;
           }
         }),
       );
 
+      const participants = await this.twilioService.listConversationParticipants(conversationSid);
+
       return {
         success: true,
         data: {
-          participants: addedParticipants
-            .filter((p) => p !== null && p !== undefined)
-            .map((p) => ({
-              id: p.id,
-              updatedAt: p.updatedAt,
-              identity: p.identity,
-              userId: p.userId,
-              conversationId: p.conversationId,
-              createdAt: p.createdAt,
-            })),
+          participants: participants.map((p) => ({
+            id: p.sid,
+            conversationId: conversationSid,
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+            userId: p.attributes?.userId || '',
+            identity: p.identity,
+            createdAt: new Date(),
+            updatedAt: new Date(),
+            attributes: p.attributes || {},
+          })),
         },
       };
     } catch (error: unknown) {
@@ -313,13 +187,7 @@ export class ConversationsService {
     participantSid: string,
   ): Promise<ApiResponseDto<void>> {
     try {
-      // First remove from Twilio
-      await this.twilioService.removeParticipant(
-        conversationSid,
-        participantSid,
-      );
-
-      // Database removal will be handled by cascade delete
+      await this.twilioService.removeParticipant(conversationSid, participantSid);
       return {
         success: true,
         data: undefined,

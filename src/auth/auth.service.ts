@@ -14,12 +14,14 @@ export class AuthService {
   ) {}
 
   async register(email: string, password: string, name: string) {
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
     const hashedPassword = await bcrypt.hash(password, 10);
     const twilioIdentity = uuidv4();
 
     const user = await this.prisma.user.create({
       data: {
         email,
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
         password: hashedPassword,
         name,
         twilioIdentity,
@@ -46,9 +48,9 @@ export class AuthService {
     };
   }
 
-  async login(email: string, password: string) {
+  async login(username: string, password: string) {
     const user = await this.prisma.user.findUnique({
-      where: { email },
+      where: { name: username },
     });
 
     if (!user) {
