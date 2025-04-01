@@ -52,19 +52,29 @@ export class ConversationsService {
     private readonly prisma: PrismaService,
   ) {}
 
-  async getConversations(userId: string): Promise<GetConversationsResponse> {
-    const user = await this.prisma.user.findUnique({
-      where: { id: userId },
-      select: { twilioIdentity: true },
+  async getConversations(
+    identity: string,
+  ): Promise<GetConversationsResponseDto> {
+    const conversations = await this.prisma.conversation.findMany({
+      where: {
+        participants: {
+          some: {
+            identity,
+          },
+        },
+      },
     });
 
-    if (!user?.twilioIdentity) {
-      throw new Error('User Twilio identity not found');
-    }
-
-    return this.twilioService.listConversations({
-      limit: 30,
-    });
+    return {
+      success: true,
+      data: {
+        conversations: conversations.map((conversation) => ({
+          sid: conversation.id,
+          friendlyName: conversation.friendlyName,
+          createdAt: conversation.createdAt.toISOString(),
+        })),
+      },
+    };
   }
 
   async getConversation(sid: string): Promise<TwilioConversation> {
@@ -131,6 +141,53 @@ export class ConversationsService {
         },
         error: getErrorMessage(error),
       };
+    }
+  }
+
+  async getParticipants(
+    conversationSid: string,
+  ): Promise<GetParticipantsResponseDto> {
+    try {
+      const participants = await this.prisma.participant.findMany({
+        where: { conversationId: conversationSid },
+        include: {
+          user: true,
+        },
+      });
+
+      return {
+        success: true,
+        data: {
+          participants: participants.map((p) => ({
+            id: p.id,
+            updatedAt: p.updatedAt,
+            identity: p.identity,
+            userId: p.userId,
+            conversationId: p.conversationId,
+            createdAt: p.createdAt,
+          })),
+        },
+      };
+    } catch (error: unknown) {
+      return {
+        success: false,
+        data: {
+          participants: [],
+        },
+        error: getErrorMessage(error),
+      };
+    }
+  }
+
+  async getConversationToken(userId: string) {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+    });
+
+    if (user) {
+      const twilioToken = this.twilioService.generateToken(user.twilioIdentity);
+
+      return twilioToken;
     }
   }
 

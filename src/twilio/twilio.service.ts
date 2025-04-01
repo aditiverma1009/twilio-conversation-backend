@@ -56,12 +56,22 @@ export class TwilioService {
     return token.toJwt();
   }
 
-  async createConversation(
-    friendlyName: string,
-  ): Promise<ConversationInstance> {
-    return this.twilio.conversations.v1.conversations.create({
-      friendlyName: friendlyName || 'New Conversation',
+  async createConversation(friendlyName?: string): Promise<Conversation> {
+    // First create conversation in Twilio
+    const twilioConversation =
+      await this.twilio.conversations.v1.conversations.create({
+        friendlyName,
+      });
+
+    // Then create in database
+    const conversation = await this.prisma.conversation.create({
+      data: {
+        id: twilioConversation.sid,
+        friendlyName: twilioConversation.friendlyName || friendlyName,
+      },
     });
+
+    return conversation;
   }
 
   async addParticipant(
@@ -87,6 +97,7 @@ export class TwilioService {
     conversationSid: string,
     participantSid: string,
   ): Promise<void> {
+    // First remove from Twilio
     await this.twilio.conversations.v1
       .conversations(conversationSid)
       .participants(participantSid)
@@ -96,6 +107,7 @@ export class TwilioService {
   async getConversation(
     conversationSid: string,
   ): Promise<Conversation & { participants: Participant[] }> {
+    // Get from database with participants
     const conversation = await this.prisma.conversation.findUnique({
       where: { id: conversationSid },
       include: { participants: true },

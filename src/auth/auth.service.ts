@@ -69,8 +69,6 @@ export class AuthService {
       identity: user.twilioIdentity,
     });
 
-    const twilioToken = this.twilioService.generateToken(user.twilioIdentity);
-
     return {
       user: {
         id: user.id,
@@ -79,7 +77,6 @@ export class AuthService {
         identity: user.twilioIdentity,
       },
       token,
-      twilioToken,
     };
   }
 } 

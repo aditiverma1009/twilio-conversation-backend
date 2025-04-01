@@ -41,7 +41,7 @@ export class ConversationsController {
   @ApiOperation({ summary: 'Get all conversations' })
   @ApiResponse({
     status: 200,
-    description: 'List of conversations with pagination',
+    description: 'List of conversations of logged in user',
     type: GetConversationsResponseDto,
   })
   async getConversations(
@@ -123,6 +123,13 @@ export class ConversationsController {
       addParticipantsDto,
     );
     return response;
+  }
+
+  @Post('token')
+  @ApiOperation({ summary: 'Create a new conversation token' })
+  async getChatToken(@Req() req: Request): Promise<string | undefined> {
+    const currentUserId = req.user?.id as string;
+    return this.conversationsService.getConversationToken(currentUserId);
   }
 
   @Delete(':conversationSid/participants/:participantSid')
